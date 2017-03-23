@@ -1,0 +1,13 @@
+spring:
+
+topic:
+  event: event
+  extEvent: extEvent
+  eventMap: eventMap
+redis:
+  host: gdc-java64-31
+  port: 6379
+kafka:
+  bootstrap:
+    servers: localhost:9092
+    topic: event

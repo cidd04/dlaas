@@ -1,0 +1,12 @@
+topic:
+  event: eventBlaas
+  eventMap: eventMapBlaas
+  notify: notifyBlaas
+redis:
+  host: gdc-java64-31
+  port: 6379
+retry:
+  maxCount: 3
+  timeoutInSeconds: 10
+directory:
+  zip:
