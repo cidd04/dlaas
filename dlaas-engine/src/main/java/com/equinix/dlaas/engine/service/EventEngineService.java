@@ -1,9 +1,6 @@
 package com.equinix.dlaas.engine.service;
 
-import com.equinix.dlaas.engine.domain.FileUploadMessage;
-import com.equinix.dlaas.engine.domain.SimpleMessage;
-import com.equinix.dlaas.engine.domain.SimpleMessageStatus;
-import com.equinix.dlaas.engine.domain.TrainTestMessage;
+import com.equinix.dlaas.engine.domain.*;
 import com.equinix.dlaas.engine.util.ZipUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -31,7 +28,7 @@ public class EventEngineService {
     private RedisList<SimpleMessage> eventQueue;
 
     @Autowired
-    private RedisMap<String, SimpleMessage> eventMap;
+    private RedisMap<String, SimpleRecord> recordMap;
 
     @Autowired
     private RedisList<SimpleMessage> notifyQueue;
@@ -67,7 +64,9 @@ public class EventEngineService {
                 notifyQueue.add(notify);
             } else if (messageClass.equals(TrainTestMessage.class.getCanonicalName())) {
                 //1. Start Training
-                multiFeatureSequence.process();
+                TrainTestMessage message = mapper.convertValue(simpleMessage.getMessage(), TrainTestMessage.class);
+                SimpleRecord record = recordMap.get(message.getId());
+                multiFeatureSequence.process(record.getTrainFilePath(), record.getTestFilePath());
                 //2. Send notification into queue
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
@@ -84,13 +83,6 @@ public class EventEngineService {
                 simpleMessage.setStatus(SimpleMessageStatus.FAILED);
             }
         }
-        //3. Save in DB
-        // mongoTemplate.save(simpleMessage);
-        // DefaultRedisList has many unsupported operations.
-        // In order to modify a value in the list, we have to iterate
-        // it manually and set it using the index
-        // DefaultRedisMap is thread safe because redistemplate is also thread safe
-        eventMap.put(simpleMessage.getId(), simpleMessage);
     }
 
     private void retry(SimpleMessage simpleMessage) {

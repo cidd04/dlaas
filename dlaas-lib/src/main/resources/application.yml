@@ -1,9 +1,9 @@
 spring:
 
 topic:
-  event: event
-  extEvent: extEvent
-  eventMap: eventMap
+  event: eventBlaas
+  recordMap: recordMapBlaas
+  notify: notifyBlaas
 redis:
   host: gdc-java64-31
   port: 6379

@@ -1,8 +1,5 @@
 package com.equinix.dlaas.engine.domain;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-
 import java.io.Serializable;
 import java.util.Date;
 
@@ -34,10 +31,8 @@ public class SimpleMessage implements Serializable {
 
     private int retryCount;
 
-    @CreatedDate
     private Date createdDate;
 
-    @LastModifiedDate
     private Date updatedDate;
 
     public String getId() {

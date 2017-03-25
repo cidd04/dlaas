@@ -2,6 +2,7 @@ package com.equinix.dlaas.api.config;
 
 import com.equinix.dataflix.SpringLogger;
 import com.equinix.dlaas.api.domain.SimpleMessage;
+import com.equinix.dlaas.api.domain.SimpleRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,7 @@ import org.springframework.data.redis.support.collections.DefaultRedisList;
 import org.springframework.data.redis.support.collections.DefaultRedisMap;
 import org.springframework.data.redis.support.collections.RedisList;
 import org.springframework.data.redis.support.collections.RedisMap;
+import org.springframework.scheduling.annotation.EnableAsync;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import java.util.HashMap;
@@ -25,16 +27,17 @@ import java.util.Map;
 @Configuration
 @EnableSwagger2
 @EnableAspectJAutoProxy
+@EnableAsync
 public class CommonConfig {
 
     @Value("${topic.event}")
     private String eventTopic;
 
-    @Value("${topic.extEvent}")
-    private String extEventTopic;
+    @Value("${topic.notify}")
+    private String notifyTopic;
 
-    @Value("${topic.eventMap}")
-    private String masterMapTopic;
+    @Value("${topic.recordMap}")
+    private String recordMapTopic;
 
     @Value("${redis.host}")
     private String redisHost;
@@ -76,14 +79,14 @@ public class CommonConfig {
     }
 
     @Bean
-    public RedisList<SimpleMessage> extEventQueue(RedisTemplate redisTemplate) {
+    public RedisList<SimpleMessage> notifyQueue(RedisTemplate redisTemplate) {
         return new DefaultRedisList<>(
-                redisTemplate.boundListOps(extEventTopic));
+                redisTemplate.boundListOps(notifyTopic));
     }
 
     @Bean
-    public RedisMap<String, SimpleMessage> eventMap(RedisTemplate redisTemplate) {
+    public RedisMap<String, SimpleRecord> recordMap(RedisTemplate redisTemplate) {
         return new DefaultRedisMap<>(
-                redisTemplate.boundHashOps(masterMapTopic));
+                redisTemplate.boundHashOps(recordMapTopic));
     }
 }
