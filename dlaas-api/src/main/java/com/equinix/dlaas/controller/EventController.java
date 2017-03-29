@@ -1,7 +1,8 @@
 package com.equinix.dlaas.controller;
 
 import com.equinix.dlaas.domain.EventResponse;
-import com.equinix.dlaas.service.FileUploadService;
+import com.equinix.dlaas.domain.FileUploadType;
+import com.equinix.dlaas.service.ForecastService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,25 +20,35 @@ public class EventController {
     @Autowired
     private ForecastService forecastService;
 
-    @Autowired
-    private FileUploadService fileUploadService;
+    @PostMapping("/upload/{id}")
+    public ResponseEntity<EventResponse> upload(@PathVariable String id, @RequestParam("file") MultipartFile file,
+                                                @RequestParam("type") FileUploadType type) {
+        forecastService.upload(id, file,type);
+        return null;
+    }
 
-    @PostMapping("/upload")
-    public ResponseEntity<EventResponse> upload(@RequestParam("file") MultipartFile file) {
-        fileUploadService.upload(file);
+    @PostMapping("/train/{id}")
+    public ResponseEntity<EventResponse> train(@PathVariable String id) {
+        forecastService.train(id);
+        return null;
+    }
+
+    @PostMapping("/create")
+    public ResponseEntity<EventResponse> create() {
+        String id = forecastService.create();
         return null;
     }
 
     @GetMapping("/forecast/{id}")
-    public ResponseEntity<EventResponse> forecast(@PathVariable String id) {
-        forecastService.process(id, null);
+    public ResponseEntity<EventResponse> forecast(@PathVariable String id, @RequestParam("count") Integer count) {
+        forecastService.forecast(id, count);
         return null;
     }
 
-    @PostMapping("/forecast/{id}")
-    public ResponseEntity<EventResponse> forecastWithPayload(@PathVariable String id,
+    @PostMapping("/update/{id}")
+    public ResponseEntity<EventResponse> update(@PathVariable String id,
                                                              @RequestBody List<String> payload) {
-        forecastService.process(id, payload);
+        forecastService.update(id, payload);
         return null;
     }
 

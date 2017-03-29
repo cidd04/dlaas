@@ -1,6 +1,5 @@
 package com.equinix.dlaas.domain;
 
-import java.lang.Error;
 import java.util.ArrayList;
 import java.util.List;
 

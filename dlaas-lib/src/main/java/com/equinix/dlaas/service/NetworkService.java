@@ -1,6 +1,6 @@
 package com.equinix.dlaas.service;
 
-
+import com.equinix.dlaas.domain.SimpleRecord;
 import org.datavec.api.records.reader.SequenceRecordReader;
 import org.datavec.api.split.NumberedFileInputSplit;
 import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator;
@@ -14,7 +14,6 @@ import org.deeplearning4j.nn.conf.layers.RnnOutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
-import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
@@ -23,16 +22,74 @@ import org.nd4j.linalg.dataset.api.preprocessor.NormalizerMinMaxScaler;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.support.collections.RedisMap;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Created by ransay on 3/28/2017.
+ */
 
 @Component
-public class MultiFeatureSequenceService {
+public class NetworkService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MultiFeatureSequenceService.class);
+    private static final Logger logger = LoggerFactory.getLogger(NetworkService.class);
 
-    public void process(String trainFilePath, String testFilePath) throws Exception {
+    @Autowired
+    private RedisMap<String, SimpleRecord> recordMap;
+
+    public List<String> predict(String id, int count) {
+        SimpleRecord record = recordMap.get(id);
+        MultiLayerNetwork net = record.getNet();
+        if (net == null)
+            throw new RuntimeException("No network configured on this id: " + id);
+        MultiFeatureSequenceRecordReader reader = new MultiFeatureSequenceRecordReader(0, ";");
+        reader.initializeData(record.getLastValue());
+        DataSetIterator trainIter = new SequenceRecordReaderDataSetIterator(reader, 32, -1, 1, true);
+        DataSet dataSet = trainIter.next();
+        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
+        normalizer.fitLabel(true);
+        normalizer.fit(dataSet);
+        normalizer.transform(dataSet);
+
+        List<INDArray> predictedList = new ArrayList<>();
+        INDArray input = dataSet.getFeatures();
+        for (int i = 0; i < count; i++) {
+            INDArray predicted = net.rnnTimeStep(input);
+            input = predicted;
+        }
+
+        List<String> output = new ArrayList<>();
+        for (INDArray value : predictedList) {
+            output.add(String.valueOf(value.getDouble(0)));
+        }
+        return output;
+    }
+
+    public void updateNetwork(String id, List<String> payload) {
+        SimpleRecord record = recordMap.get(id);
+        MultiLayerNetwork net = record.getNet();
+        if (net == null)
+            throw new RuntimeException("No network configured on this id: " + id);
+        MultiFeatureSequenceRecordReader reader = new MultiFeatureSequenceRecordReader(0, ";");
+        reader.initializeData(payload);
+        DataSetIterator trainIter = new SequenceRecordReaderDataSetIterator(reader, 32, -1, 1, true);
+        DataSet dataSet = trainIter.next();
+        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
+        normalizer.fitLabel(true);
+        normalizer.fit(dataSet);
+        normalizer.transform(dataSet);
+        net.fit(dataSet);
+        record.setNet(net);
+        recordMap.put(id, record);
+    }
+
+    public void createNetwork(String trainFilePath, String testFilePath)
+            throws IOException, InterruptedException {
 
         int miniBatchSize = 32;
 
@@ -84,7 +141,7 @@ public class MultiFeatureSequenceService {
 
         for (int i = 0; i < nEpochs; i++) {
             net.fit(trainData);
-            LOGGER.info("Epoch " + i + " complete. Time series evaluation:");
+            logger.info("Epoch " + i + " complete. Time series evaluation:");
 
             //Run regression evaluation on our single column input
             RegressionEvaluation evaluation = new RegressionEvaluation(1);
@@ -99,29 +156,16 @@ public class MultiFeatureSequenceService {
             System.out.println(evaluation.stats());
         }
 
-        File locationToSave = new File(trainFilePath + "_model.zip");
-        boolean saveUpdater = true;
-        ModelSerializer.writeModel(net, locationToSave, saveUpdater);
+        SimpleRecord record = new SimpleRecord.SimpleRecordBuilder()
+                .id("")
+                .trainFilePath(trainFilePath)
+                .testFilePath(testFilePath).build();
+        recordMap.put("", record);
 
-        LOGGER.info("----- Complete -----");
+        logger.info("----- Complete -----");
     }
 
-    public void formatRawData(String rawDataFilePath) throws IOException {
-        try (BufferedReader br = new BufferedReader(new FileReader(rawDataFilePath));
-             FileWriter fw = new FileWriter(rawDataFilePath + "_")) {
-            String line;
-            String[] s = null;
-            boolean first = true;
-            while ((line = br.readLine()) != null) {
-                s = line.split(";");
-                if (!first)
-                    fw.write(s[1] + "\n");
-                for (int i = 1; i < s.length; i++) {
-                    fw.write(s[i] + ";");
-                }
-                first = false;
-            }
-            fw.write(s[1] + "\n");
-        }
+    public void createRecord(SimpleRecord record) {
+        recordMap.put(record.getId(), record);
     }
 }

@@ -30,12 +30,12 @@ public class RedisMessageReceiver {
                 // Block queue from redis until message is received.
                 // This will work even with multiple instance of this module.
                 SimpleMessage simpleMessage = extEventQueue.take();
-                log.info("Message from redis queue received.");
+                log.info("Message from redis queue received. " + simpleMessage);
                 messageProcessor.processAsync(simpleMessage);
             } catch (InterruptedException e) {
                 log.error("Something wrong has happened!", e);
-            } catch (Exception e2) {
-                log.error("Some random exception", e2);
+            } catch (Exception ex) {
+                log.error("Some random exception", ex);
             }
         }
     }

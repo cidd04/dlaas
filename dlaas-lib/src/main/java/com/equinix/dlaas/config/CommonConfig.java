@@ -58,6 +58,12 @@ public class CommonConfig {
     }
 
     @Bean
+    public RedisList<SimpleMessage> eventQueue(RedisTemplate redisTemplate) {
+        return new DefaultRedisList<>(
+                redisTemplate.boundListOps(eventTopic));
+    }
+
+    @Bean
     public RedisList<SimpleMessage> notifyQueue(RedisTemplate redisTemplate) {
         return new DefaultRedisList<>(
                 redisTemplate.boundListOps(notifyTopic));

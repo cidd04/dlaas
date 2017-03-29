@@ -5,13 +5,13 @@ package com.equinix.dlaas.domain;
  */
 public class TrainTestMessage {
 
-    private String id;
+    private String networkId;
 
-    public String getId() {
-        return id;
+    public String getNetworkId() {
+        return networkId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setNetworkId(String networkId) {
+        this.networkId = networkId;
     }
 }

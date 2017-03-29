@@ -1,6 +1,5 @@
-package com.equinix.dlaas.service;
+package com.equinix.dlaas.util;
 
-import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -9,15 +8,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Created by ransay on 3/24/2017.
+ * Created by ransay on 3/28/2017.
  */
+public class FileUploadUtil {
 
-@Service
-public class FileUploadService {
-
-    public void upload(MultipartFile file) {
+    public static void upload(MultipartFile file) {
         if (file.isEmpty()) {
-            // throw error
             return;
         }
         try {
@@ -27,7 +23,7 @@ public class FileUploadService {
             Files.write(path, bytes);
             //log success
         } catch (IOException e) {
-            e.printStackTrace();
+           throw new RuntimeException("Upload Fail! ", e);
         }
     }
 }

@@ -25,6 +25,7 @@ public class MultiFeatureSequenceRecordReader extends FileRecordReader implement
 
     private int skipNumLines = 0;
     private String delimiter = ",";
+    private Iterator<String> dataIter;
 
     public MultiFeatureSequenceRecordReader() {
         this(0, ",");
@@ -37,6 +38,10 @@ public class MultiFeatureSequenceRecordReader extends FileRecordReader implement
     public MultiFeatureSequenceRecordReader(int skipNumLines, String delimiter) {
         this.skipNumLines = skipNumLines;
         this.delimiter = delimiter;
+    }
+
+    public void initializeData(List<String> data) {
+        this.dataIter = data.iterator();
     }
 
     @Override
@@ -53,18 +58,33 @@ public class MultiFeatureSequenceRecordReader extends FileRecordReader implement
 
     @Override
     public SequenceRecord nextSequence() {
-        File next = iter.next();
-        invokeListeners(next);
 
-        List<List<Writable>> out = null;
-        try {
-           out = loadAndClose(new FileInputStream(next));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (dataIter == null) {
+            File next = iter.next();
+            invokeListeners(next);
+
+            List<List<Writable>> out = null;
+            try {
+                out = loadAndClose(new FileInputStream(next));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            return new org.datavec.api.records.impl.SequenceRecord(out, new RecordMetaDataURI(next.toURI()));
+        } else {
+            List<List<Writable>> out = load(dataIter);
+            return new org.datavec.api.records.impl.SequenceRecord(out, null);
         }
-
-        return new org.datavec.api.records.impl.SequenceRecord(out, new RecordMetaDataURI(next.toURI()));
     }
+
+    public boolean hasNext() {
+        if (dataIter == null) {
+            return super.hasNext();
+        } else {
+            return dataIter != null && dataIter.hasNext();
+        }
+    }
+
 
     private List<List<Writable>> loadAndClose(InputStream inputStream) {
         LineIterator lineIter = null;

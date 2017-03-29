@@ -1,7 +1,7 @@
 package com.equinix.dlaas.service;
 
 import com.equinix.dlaas.domain.*;
-import com.equinix.dlaas.util.ZipUtil;
+import com.equinix.dlaas.util.TrainNetworkUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,7 @@ import org.springframework.data.redis.support.collections.RedisList;
 import org.springframework.data.redis.support.collections.RedisMap;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
+import java.io.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -49,7 +49,7 @@ public class TrainNetworkService implements MessageProcessor {
     ObjectMapper mapper;
 
     @Autowired
-    MultiFeatureSequenceService multiFeatureSequenceService;
+    NetworkService networkService;
 
     @Override
     public void processAsync(SimpleMessage simpleMessage) {
@@ -59,15 +59,25 @@ public class TrainNetworkService implements MessageProcessor {
                 //1. Get file name
                 FileUploadMessage message = mapper.convertValue(simpleMessage.getMessage(), FileUploadMessage.class);
                 //2. Unzip
-                ZipUtil.unzip(zipDirectory + File.separator + message.getFileName(), zipDirectory);
+                TrainNetworkUtil.unzip(zipDirectory + File.separator + message.getFileName(), zipDirectory);
                 //3. Send notification into queue
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
             } else if (messageClass.equals(TrainTestMessage.class.getCanonicalName())) {
                 //1. Start Training
                 TrainTestMessage message = mapper.convertValue(simpleMessage.getMessage(), TrainTestMessage.class);
-                SimpleRecord record = recordMap.get(message.getId());
-                multiFeatureSequenceService.process(record.getTrainFilePath(), record.getTestFilePath());
+                SimpleRecord record = recordMap.get(message.getNetworkId());
+                record.setTrainFilePath(record.getId() + "_train.txt");
+                record.setTestFilePath(record.getId() + "_test.txt");
+                TrainNetworkUtil.formatRawData(record.getRawTrainFilePath(), record.getTrainFilePath());
+                TrainNetworkUtil.formatRawData(record.getTestFilePath(), record.getTestFilePath());
+                networkService.createNetwork(record.getTrainFilePath(), record.getTestFilePath());
+                //2. Send notification into queue
+                SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
+                notifyQueue.add(notify);
+            } else if (messageClass.equals(UpdateMessage.class.getCanonicalName())) {
+                UpdateMessage message = mapper.convertValue(simpleMessage.getMessage(), UpdateMessage.class);
+                networkService.updateNetwork(message.getNetworkId(), message.getPayload());
                 //2. Send notification into queue
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
@@ -97,5 +107,7 @@ public class TrainNetworkService implements MessageProcessor {
             }
         }, timeoutInSeconds, TimeUnit.SECONDS);
     }
+
+
 
 }

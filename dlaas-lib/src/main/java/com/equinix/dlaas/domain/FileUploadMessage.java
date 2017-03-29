@@ -7,11 +7,21 @@ public class FileUploadMessage {
 
     private String fileName;
 
+    private FileUploadType type;
+
     public String getFileName() {
         return fileName;
     }
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public FileUploadType getType() {
+        return type;
+    }
+
+    public void setType(FileUploadType type) {
+        this.type = type;
     }
 }

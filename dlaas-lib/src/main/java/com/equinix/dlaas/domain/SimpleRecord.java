@@ -2,6 +2,8 @@ package com.equinix.dlaas.domain;
 
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 
+import java.util.List;
+
 /**
  * Created by ransay on 3/23/2017.
  */
@@ -11,14 +13,17 @@ public class SimpleRecord {
 
     private SimpleRecord(SimpleRecordBuilder builder) {
         this.id = builder.id;
-        this.trainFilePath = builder.trainFilePath;
-        this.testFilePath = builder.testFilePath;
+        this.rawTrainFilePath = builder.trainFilePath;
+        this.rawTestFilePath = builder.testFilePath;
     }
 
     private String id;
+    private String rawTrainFilePath;
+    private String rawTestFilePath;
     private String trainFilePath;
     private String testFilePath;
     private MultiLayerNetwork net;
+    private List<String> lastValue;
 
     public String getId() {
         return id;
@@ -50,6 +55,30 @@ public class SimpleRecord {
 
     public void setNet(MultiLayerNetwork net) {
         this.net = net;
+    }
+
+    public List<String> getLastValue() {
+        return lastValue;
+    }
+
+    public void setLastValue(List<String> lastValue) {
+        this.lastValue = lastValue;
+    }
+
+    public String getRawTrainFilePath() {
+        return rawTrainFilePath;
+    }
+
+    public void setRawTrainFilePath(String rawTrainFilePath) {
+        this.rawTrainFilePath = rawTrainFilePath;
+    }
+
+    public String getRawTestFilePath() {
+        return rawTestFilePath;
+    }
+
+    public void setRawTestFilePath(String rawTestFilePath) {
+        this.rawTestFilePath = rawTestFilePath;
     }
 
     public static class SimpleRecordBuilder {

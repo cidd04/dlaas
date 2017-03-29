@@ -1,17 +1,13 @@
 package com.equinix.dlaas.util;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
  * Created by ransay on 3/23/2017.
  */
-public class ZipUtil {
+public class TrainNetworkUtil {
 
     /**
      * Size of the buffer to read/write data
@@ -63,4 +59,22 @@ public class ZipUtil {
         bos.close();
     }
 
+    public static void formatRawData(String rawDataFilePath, String saveFilePath) throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(rawDataFilePath));
+             FileWriter fw = new FileWriter(saveFilePath)) {
+            String line;
+            String[] s = null;
+            boolean first = true;
+            while ((line = br.readLine()) != null) {
+                s = line.split(";");
+                if (!first)
+                    fw.write(s[1] + "\n");
+                for (int i = 1; i < s.length; i++) {
+                    fw.write(s[i] + ";");
+                }
+                first = false;
+            }
+            fw.write(s[1] + "\n");
+        }
+    }
 }
