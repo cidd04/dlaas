@@ -50,4 +50,9 @@ public class ForecastServiceTest {
                 file.getName(), "text/plain", IOUtils.toByteArray(input));
         forecastService.upload(networkId, multipartFile, FileUploadType.TEST_FILE_PATH);
     }
+
+    @Test
+    public void forecast() {
+        forecastService.forecast(networkId, 3);
+    }
 }

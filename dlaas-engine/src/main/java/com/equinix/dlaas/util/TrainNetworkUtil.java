@@ -101,4 +101,14 @@ public class TrainNetworkUtil {
         destination.add(value);
         return destination;
     }
+
+    public static List<String> getLastValue(String filePath) throws IOException {
+        List<String> lastValueList = new ArrayList<>();
+        String line;
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            while ((line = br.readLine()) != null) {}
+            lastValueList.add(line);
+        }
+        return lastValueList;
+    }
 }

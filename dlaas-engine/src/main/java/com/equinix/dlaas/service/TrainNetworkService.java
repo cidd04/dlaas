@@ -63,15 +63,25 @@ public class TrainNetworkService implements MessageProcessor {
                 //1. Start Training
                 TrainTestMessage message = (TrainTestMessage) simpleMessage.getMessage();
                 SimpleRecord record = recordMap.get(message.getNetworkId());
+
                 record.setTrainFilePath(record.getId() + "_0_train.txt");
-                record.setTestFilePath(record.getId() + "_0_test.txt");
                 TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
                         dataDirectory + "/" + record.getTrainFilePath());
-                TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTestFilePath(),
-                        dataDirectory + "/" + record.getTestFilePath());
-                MultiLayerNetwork net = networkService.createNetwork(dataDirectory + "/" + record.getId() + "_%d_train.txt",
-                        dataDirectory + "/" + record.getId() + "_%d_test.txt");
-                //2. Send notification into queue
+                MultiLayerNetwork net;
+                if (record.getRawTestFilePath() != null) {
+                    record.setTestFilePath(record.getId() + "_0_test.txt");
+                    TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTestFilePath(),
+                            dataDirectory + "/" + record.getTestFilePath());
+                    net = networkService.createNetwork(dataDirectory + "/" + record.getId() + "_%d_train.txt",
+                            dataDirectory + "/" + record.getId() + "_%d_test.txt");
+                } else {
+                    net = networkService.createNetwork(dataDirectory + "/" + record.getId() + "_%d_train.txt");
+                }
+                //2. Set last value from test data
+                List<String> lastValue = TrainNetworkUtil.getLastValue(
+                        dataDirectory + "/" + record.getRawTrainFilePath());
+                record.setLastValue(lastValue);
+                //3. Send notification into queue
                 record.setNet(net);
                 recordMap.put(record.getId(), record);
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
@@ -83,10 +93,12 @@ public class TrainNetworkService implements MessageProcessor {
                     throw new RuntimeException("No network configured on this id: " + record.getId());
                 List<String> payload = TrainNetworkUtil.formatRawData(message.getPayload());
                 MultiLayerNetwork net = networkService.updateNetwork(record.getNet(), payload);
-                //2. Update record map
+                //2. Set last value from payload
+                record.setLastValue(message.getPayload());
+                //3. Update record map
                 record.setNet(net);
                 recordMap.put(record.getId(), record);
-                //3. Send notification into queue
+                //4. Send notification into queue
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
             }

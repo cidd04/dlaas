@@ -4,7 +4,6 @@ topic:
   notify: notifyBlaas
 redis:
   host: gg
-  host: gg
   port: 6379
 networkConfig:
   miniBatchSize: 32

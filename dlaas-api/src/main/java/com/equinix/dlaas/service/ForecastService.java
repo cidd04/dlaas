@@ -82,8 +82,6 @@ public class ForecastService {
             throw new RuntimeException("No network configured on this id: " + id);
         if (record.getTrainFilePath() == null)
             throw new RuntimeException("Train data not found!");
-        if (record.getTestFilePath() == null)
-            throw new RuntimeException("Test data not found!");
         eventQueue.add(message);
     }
 }

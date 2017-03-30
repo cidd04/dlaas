@@ -1,7 +1,6 @@
 package com.equinix.dlaas.service;
 
 import com.equinix.dlaas.config.NetworkConfig;
-import org.datavec.api.records.reader.SequenceRecordReader;
 import org.datavec.api.split.NumberedFileInputSplit;
 import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator;
 import org.deeplearning4j.eval.RegressionEvaluation;
@@ -42,59 +41,40 @@ public class NetworkService {
     private static final Logger logger = LoggerFactory.getLogger(NetworkService.class);
 
     public List<String> predict(MultiLayerNetwork net, List<String> lastValue, int count) {
-
-        MultiFeatureSequenceRecordReader reader = new MultiFeatureSequenceRecordReader(0, ";");
-        reader.initializeData(lastValue);
-        DataSetIterator trainIter = new SequenceRecordReaderDataSetIterator(reader, config.getMiniBatchSize(), -1, 1, true);
-        DataSet dataSet = trainIter.next();
-        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
-        normalizer.fitLabel(true);
-        normalizer.fit(dataSet);
-        normalizer.transform(dataSet);
-
+        DataSet dataSet = initializeDataSet(lastValue);
+        normalizeDataset(dataSet);
         List<INDArray> predictedList = new ArrayList<>();
         INDArray input = dataSet.getFeatures();
         for (int i = 0; i < count; i++) {
             INDArray predicted = net.rnnTimeStep(input);
+            predictedList.add(predicted);
             input = predicted;
         }
-
         List<String> output = new ArrayList<>();
-        for (INDArray value : predictedList) {
-            output.add(String.valueOf(value.getDouble(0)));
+        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
+        for (INDArray predicted : predictedList) {
+            normalizer.revertLabels(predicted);
+            output.add(String.valueOf(predicted.getDouble(0)));
         }
         return output;
     }
 
     public MultiLayerNetwork updateNetwork(MultiLayerNetwork net, List<String> payload) {
-        MultiFeatureSequenceRecordReader reader = new MultiFeatureSequenceRecordReader(0, ";");
-        reader.initializeData(payload);
-        DataSetIterator trainIter = new SequenceRecordReaderDataSetIterator(reader, config.getMiniBatchSize(), -1, 1, true);
-        DataSet dataSet = trainIter.next();
-        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
-        normalizer.fitLabel(true);
-        normalizer.fit(dataSet);
-        normalizer.transform(dataSet);
-        net.fit(dataSet);
-        return net;
+        return null;
+    }
+
+    public MultiLayerNetwork createNetwork(String trainFilePath)
+            throws IOException, InterruptedException {
+        return createNetwork(trainFilePath);
     }
 
     public MultiLayerNetwork createNetwork(String trainFilePath, String testFilePath)
             throws IOException, InterruptedException {
-
-        SequenceRecordReader trainReader = new MultiFeatureSequenceRecordReader(0, ";");
-        trainReader.initialize(new NumberedFileInputSplit(trainFilePath, 0, 0));
-        DataSetIterator trainIter = new SequenceRecordReaderDataSetIterator(trainReader, config.getMiniBatchSize(), -1, 1, true);
-        SequenceRecordReader testReader = new MultiFeatureSequenceRecordReader(0, ";");
-        testReader.initialize(new NumberedFileInputSplit(testFilePath, 0, 0));
-        DataSetIterator testIter = new SequenceRecordReaderDataSetIterator(testReader, config.getMiniBatchSize(), -1, 1, true);
-        DataSet trainData = trainIter.next();
-        DataSet testData = testIter.next();
-        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
-        normalizer.fitLabel(true);
-        normalizer.fit(trainData);
-        normalizer.transform(trainData);
-        normalizer.transform(testData);
+        DataSet trainData = initializeDataSet(trainFilePath);
+        DataSet testData = null;
+        if (testFilePath != null)
+            testData = initializeDataSet(testFilePath);
+        normalizeDataset(trainData, testData);
 
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
                 .seed(config.getSeed())
@@ -116,14 +96,45 @@ public class NetworkService {
         for (int i = 0; i < config.getnEpochs(); i++) {
             net.fit(trainData);
             logger.info("Epoch " + i + " complete. Time series evaluation:");
-            RegressionEvaluation evaluation = new RegressionEvaluation(1);
-            INDArray features = testData.getFeatureMatrix();
-            INDArray lables = testData.getLabels();
-            INDArray predicted = net.output(features, false);
-            evaluation.evalTimeSeries(lables, predicted);
-            System.out.println(evaluation.stats());
+            if (testFilePath != null) {
+                RegressionEvaluation evaluation = new RegressionEvaluation(1);
+                INDArray predicted = net.output(testData.getFeatureMatrix(), false);
+                evaluation.evalTimeSeries(testData.getLabels(), predicted);
+                System.out.println(evaluation.stats());
+            }
         }
-        logger.info("----- Complete -----");
         return net;
     }
+
+    private void normalizeDataset(DataSet trainData) {
+        normalizeDataset(trainData, null);
+    }
+
+    private void normalizeDataset(DataSet trainData, DataSet testData) {
+        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
+        normalizer.fitLabel(true);
+        normalizer.fit(trainData);
+        normalizer.transform(trainData);
+        if (testData != null)
+            normalizer.transform(testData);
+    }
+
+    private DataSet initializeDataSet(String filePath) throws IOException, InterruptedException {
+        MultiFeatureSequenceRecordReader reader = new MultiFeatureSequenceRecordReader(0, ";");
+        reader.initialize(new NumberedFileInputSplit(filePath, 0, 0));
+        return initializeDataSet(reader);
+    }
+
+    private DataSet initializeDataSet(List<String> payload) {
+        MultiFeatureSequenceRecordReader reader = new MultiFeatureSequenceRecordReader(0, ";");
+        reader.initializeData(payload);
+        return initializeDataSet(reader);
+    }
+
+    private DataSet initializeDataSet(MultiFeatureSequenceRecordReader reader) {
+        DataSetIterator iter = new SequenceRecordReaderDataSetIterator(
+                reader, config.getMiniBatchSize(), -1, 1, true);
+        return iter.next();
+    }
+
 }
