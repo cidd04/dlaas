@@ -2,7 +2,7 @@ package com.equinix.dlaas.service;
 
 import com.equinix.dlaas.domain.*;
 import com.equinix.dlaas.util.TrainNetworkUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +11,7 @@ import org.springframework.data.redis.support.collections.RedisList;
 import org.springframework.data.redis.support.collections.RedisMap;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -42,57 +42,66 @@ public class TrainNetworkService implements MessageProcessor {
     @Value("${retry.timeoutInSeconds}")
     private int timeoutInSeconds;
 
-    @Value("${directory.zip}")
-    private String zipDirectory;
-
-    @Autowired
-    ObjectMapper mapper;
-
     @Autowired
     NetworkService networkService;
+
+    @Value("${dataDirectory}")
+    private String dataDirectory;
 
     @Override
     public void processAsync(SimpleMessage simpleMessage) {
         try {
-            String messageClass = simpleMessage.getMessageClass();
-            if (messageClass.equals(FileUploadMessage.class.getCanonicalName())) {
+            if (simpleMessage.getMessage() instanceof FileUploadMessage) {
                 //1. Get file name
-                FileUploadMessage message = mapper.convertValue(simpleMessage.getMessage(), FileUploadMessage.class);
+                FileUploadMessage message = (FileUploadMessage) simpleMessage.getMessage();
                 //2. Unzip
-                TrainNetworkUtil.unzip(zipDirectory + File.separator + message.getFileName(), zipDirectory);
+                TrainNetworkUtil.unzip(dataDirectory + "/" + message.getFileName(), dataDirectory);
                 //3. Send notification into queue
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
-            } else if (messageClass.equals(TrainTestMessage.class.getCanonicalName())) {
+            } else if (simpleMessage.getMessage() instanceof TrainTestMessage) {
                 //1. Start Training
-                TrainTestMessage message = mapper.convertValue(simpleMessage.getMessage(), TrainTestMessage.class);
+                TrainTestMessage message = (TrainTestMessage) simpleMessage.getMessage();
                 SimpleRecord record = recordMap.get(message.getNetworkId());
-                record.setTrainFilePath(record.getId() + "_train.txt");
-                record.setTestFilePath(record.getId() + "_test.txt");
-                TrainNetworkUtil.formatRawData(record.getRawTrainFilePath(), record.getTrainFilePath());
-                TrainNetworkUtil.formatRawData(record.getTestFilePath(), record.getTestFilePath());
-                networkService.createNetwork(record.getTrainFilePath(), record.getTestFilePath());
+                record.setTrainFilePath(record.getId() + "_0_train.txt");
+                record.setTestFilePath(record.getId() + "_0_test.txt");
+                TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
+                        dataDirectory + "/" + record.getTrainFilePath());
+                TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTestFilePath(),
+                        dataDirectory + "/" + record.getTestFilePath());
+                MultiLayerNetwork net = networkService.createNetwork(dataDirectory + "/" + record.getId() + "_%d_train.txt",
+                        dataDirectory + "/" + record.getId() + "_%d_test.txt");
                 //2. Send notification into queue
+                record.setNet(net);
+                recordMap.put(record.getId(), record);
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
-            } else if (messageClass.equals(UpdateMessage.class.getCanonicalName())) {
-                UpdateMessage message = mapper.convertValue(simpleMessage.getMessage(), UpdateMessage.class);
-                networkService.updateNetwork(message.getNetworkId(), message.getPayload());
-                //2. Send notification into queue
+            } else if (simpleMessage.getMessage() instanceof UpdateMessage) {
+                UpdateMessage message = (UpdateMessage) simpleMessage.getMessage();
+                SimpleRecord record = recordMap.get(message.getNetworkId());
+                if (record.getNet() == null)
+                    throw new RuntimeException("No network configured on this id: " + record.getId());
+                List<String> payload = TrainNetworkUtil.formatRawData(message.getPayload());
+                MultiLayerNetwork net = networkService.updateNetwork(record.getNet(), payload);
+                //2. Update record map
+                record.setNet(net);
+                recordMap.put(record.getId(), record);
+                //3. Send notification into queue
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
             }
             //throw new RuntimeException("ABCD");
         } catch (Exception e) {
+            throw new RuntimeException(e);
             //2. Retry using scheduler
-            log.info("Some exception occurred", e.getMessage());
-            simpleMessage.setRetryCount(simpleMessage.getRetryCount() + 1);
-            simpleMessage.setStatus(SimpleMessageStatus.RETRY);
-            if (simpleMessage.getRetryCount() < retryMaxCount) {
-                this.retry(simpleMessage);
-            } else {
-                simpleMessage.setStatus(SimpleMessageStatus.FAILED);
-            }
+//            log.info("Some exception occurred. Retrying...", e.getMessage());
+//            simpleMessage.setRetryCount(simpleMessage.getRetryCount() + 1);
+//            simpleMessage.setStatus(SimpleMessageStatus.RETRY);
+//            if (simpleMessage.getRetryCount() < retryMaxCount) {
+//                this.retry(simpleMessage);
+//            } else {
+//                simpleMessage.setStatus(SimpleMessageStatus.FAILED);
+//            }
         }
     }
 

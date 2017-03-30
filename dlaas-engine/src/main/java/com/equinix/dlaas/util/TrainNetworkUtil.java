@@ -1,6 +1,8 @@
 package com.equinix.dlaas.util;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -29,7 +31,7 @@ public class TrainNetworkUtil {
         ZipEntry entry = zipIn.getNextEntry();
         // iterates over entries in the zip file
         while (entry != null) {
-            String filePath = destDirectory + File.separator + entry.getName();
+            String filePath = destDirectory + "/" + entry.getName();
             if (!entry.isDirectory()) {
                 // if the entry is a file, extracts it
                 extractFile(zipIn, filePath);
@@ -76,5 +78,27 @@ public class TrainNetworkUtil {
             }
             fw.write(s[1] + "\n");
         }
+    }
+
+    public static List<String> formatRawData(List<String> source) {
+        List<String> destination = new ArrayList<>();
+        String value = "";
+        String[] s = null;
+        boolean first = true;
+        for (String line : source) {
+            s = line.split(";");
+            if (!first) {
+                value += s[1];
+                destination.add(value);
+                value = "";
+            }
+            for (int i = 1; i < s.length; i++) {
+                value += s[i] + ";";
+            }
+            first = false;
+        }
+        value += s[1];
+        destination.add(value);
+        return destination;
     }
 }

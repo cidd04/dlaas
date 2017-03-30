@@ -1,13 +1,19 @@
-spring:
-
 topic:
   event: eventBlaas
   recordMap: recordMapBlaas
   notify: notifyBlaas
 redis:
-  host: gdc-java64-31
+  host: gg
+  host: gg
   port: 6379
-kafka:
-  bootstrap:
-    servers: localhost:9092
-    topic: event
+networkConfig:
+  miniBatchSize: 32
+  seed: 120
+  iterations: 1
+  learningRate: 0.0015
+  nEpochs: 600
+  hidden: 10
+dataDirectory: C:/Users/gg
+retry:
+  maxCount: 2
+  timeoutInSeconds: 10

@@ -10,11 +10,13 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "networkConfig")
 @Component
 public class NetworkConfig {
+
     private int miniBatchSize;
     private int seed;
     private int iterations;
     private double learningRate;
     private int nEpochs;
+    private int hidden;
 
     public int getMiniBatchSize() {
         return miniBatchSize;
@@ -54,5 +56,13 @@ public class NetworkConfig {
 
     public void setnEpochs(int nEpochs) {
         this.nEpochs = nEpochs;
+    }
+
+    public int getHidden() {
+        return hidden;
+    }
+
+    public void setHidden(int hidden) {
+        this.hidden = hidden;
     }
 }

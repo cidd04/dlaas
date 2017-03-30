@@ -16,7 +16,6 @@ public class SimpleMessage implements Serializable {
     private SimpleMessage(SimpleMessageBuilder builder) {
         this.id = builder.id;
         this.message = builder.message;
-        this.messageClass = builder.messageClass;
         this.status = builder.status;
         this.retryCount = builder.retryCount;
     }
@@ -24,8 +23,6 @@ public class SimpleMessage implements Serializable {
     private String id;
 
     private Object message;
-
-    private String messageClass;
 
     private SimpleMessageStatus status;
 
@@ -83,19 +80,10 @@ public class SimpleMessage implements Serializable {
         this.updatedDate = updatedDate;
     }
 
-    public String getMessageClass() {
-        return messageClass;
-    }
-
-    public void setMessageClass(String messageClass) {
-        this.messageClass = messageClass;
-    }
-
     public static class SimpleMessageBuilder {
 
         private String id;
         private Object message;
-        private String messageClass;
         private SimpleMessageStatus status;
         private int retryCount;
 
@@ -110,11 +98,6 @@ public class SimpleMessage implements Serializable {
 
         public SimpleMessageBuilder message(Object message) {
             this.message = message;
-            return this;
-        }
-
-        public SimpleMessageBuilder messageClass(String messageClass) {
-            this.messageClass = messageClass;
             return this;
         }
 

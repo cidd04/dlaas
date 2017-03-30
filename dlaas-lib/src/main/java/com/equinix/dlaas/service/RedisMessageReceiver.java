@@ -18,7 +18,7 @@ public class RedisMessageReceiver {
     private static final Logger log = LoggerFactory.getLogger(RedisMessageReceiver.class);
 
     @Autowired
-    private RedisList<SimpleMessage> extEventQueue;
+    private RedisList<SimpleMessage> eventQueue;
 
     @Async
     public void listen(MessageProcessor messageProcessor) {
@@ -29,7 +29,7 @@ public class RedisMessageReceiver {
             try {
                 // Block queue from redis until message is received.
                 // This will work even with multiple instance of this module.
-                SimpleMessage simpleMessage = extEventQueue.take();
+                SimpleMessage simpleMessage = eventQueue.take();
                 log.info("Message from redis queue received. " + simpleMessage);
                 messageProcessor.processAsync(simpleMessage);
             } catch (InterruptedException e) {

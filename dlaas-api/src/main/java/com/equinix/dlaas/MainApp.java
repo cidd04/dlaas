@@ -4,7 +4,7 @@ package com.equinix.dlaas;
  * Created by ransay on 1/18/2017.
  */
 
-import com.equinix.dlaas.service.NotifyReceiverService;
+import com.equinix.dlaas.service.MessageProcessor;
 import com.equinix.dlaas.service.RedisMessageReceiver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -18,7 +18,7 @@ public class MainApp implements CommandLineRunner {
     private RedisMessageReceiver redisMessageReceiver;
 
     @Autowired
-    private NotifyReceiverService notifyReceiverService;
+    private MessageProcessor notifyReceiverService;
 
     public static void main(String[] args) {
         SpringApplication.run(MainApp.class, args);

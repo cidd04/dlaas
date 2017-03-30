@@ -3,9 +3,9 @@ package com.equinix.dlaas.domain;
 import java.io.Serializable;
 
 /**
- * Created by ransay on 3/23/2017.
+ * Created by ransay on 3/30/2017.
  */
-public class TrainTestMessage implements Serializable {
+public class NotificationMessage implements Serializable {
 
     private String networkId;
 
@@ -16,4 +16,5 @@ public class TrainTestMessage implements Serializable {
     public void setNetworkId(String networkId) {
         this.networkId = networkId;
     }
+
 }

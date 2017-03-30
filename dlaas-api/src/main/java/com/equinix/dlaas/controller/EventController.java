@@ -23,7 +23,7 @@ public class EventController {
     @PostMapping("/upload/{id}")
     public ResponseEntity<EventResponse> upload(@PathVariable String id, @RequestParam("file") MultipartFile file,
                                                 @RequestParam("type") FileUploadType type) {
-        forecastService.upload(id, file,type);
+        forecastService.upload(id, file, type);
         return null;
     }
 
@@ -36,6 +36,7 @@ public class EventController {
     @PostMapping("/create")
     public ResponseEntity<EventResponse> create() {
         String id = forecastService.create();
+        log.info("Network id: " + id);
         return null;
     }
 

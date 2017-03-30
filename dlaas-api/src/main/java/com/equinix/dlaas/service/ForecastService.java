@@ -7,6 +7,7 @@ import com.equinix.dlaas.domain.UpdateMessage;
 import com.equinix.dlaas.util.FileUploadUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.support.collections.RedisList;
 import org.springframework.data.redis.support.collections.RedisMap;
 import org.springframework.stereotype.Service;
@@ -30,8 +31,14 @@ public class ForecastService {
     @Autowired
     private RedisMap<String, SimpleRecord> recordMap;
 
+    @Value("${dataDirectory}")
+    private String destination;
+
     public List<String> forecast(String id, Integer count) {
-        return networkService.predict(id, count);
+        SimpleRecord record = recordMap.get(id);
+        if (record.getNet() == null)
+            throw new RuntimeException("No network configured on this id: " + id);
+        return networkService.predict(record.getNet(), record.getLastValue(), count);
     }
 
     public void update(String id, List<String> payload) {
@@ -41,7 +48,6 @@ public class ForecastService {
         SimpleMessage message = new SimpleMessage.SimpleMessageBuilder()
                 .id(RandomStringUtils.randomAlphanumeric(10))
                 .message(updateMessage)
-                .messageClass(UpdateMessage.class.getCanonicalName())
                 .build();
         eventQueue.add(message);
     }
@@ -55,8 +61,10 @@ public class ForecastService {
     }
 
     public void upload(String id, MultipartFile file, FileUploadType type) {
-        FileUploadUtil.upload(file);
+        FileUploadUtil.upload(file, destination);
         SimpleRecord record = recordMap.get(id);
+        if (record == null)
+            throw new RuntimeException("No record found for this id: " + id);
         if (type == FileUploadType.TRAIN_FILE_PATH) {
             record.setRawTrainFilePath(file.getOriginalFilename());
         } else {
@@ -70,6 +78,8 @@ public class ForecastService {
                 .id(RandomStringUtils.randomAlphanumeric(10))
                 .build();
         SimpleRecord record = recordMap.get(id);
+        if (record.getNet() == null)
+            throw new RuntimeException("No network configured on this id: " + id);
         if (record.getTrainFilePath() == null)
             throw new RuntimeException("Train data not found!");
         if (record.getTestFilePath() == null)

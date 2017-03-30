@@ -1,6 +1,6 @@
 package com.equinix.dlaas;
 
-import com.equinix.dlaas.service.TrainNetworkService;
+import com.equinix.dlaas.service.MessageProcessor;
 import com.equinix.dlaas.service.RedisMessageReceiver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -17,7 +17,7 @@ public class MainApp implements CommandLineRunner {
     private RedisMessageReceiver redisMessageReceiver;
 
     @Autowired
-    private TrainNetworkService engineService;
+    private MessageProcessor engineService;
 
     public static void main(String[] args) {
         SpringApplication.run(MainApp.class, args);

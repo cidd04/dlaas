@@ -1,9 +1,11 @@
 package com.equinix.dlaas.domain;
 
+import java.io.Serializable;
+
 /**
  * Created by ransay on 3/23/2017.
  */
-public class FileUploadMessage {
+public class FileUploadMessage implements Serializable {
 
     private String fileName;
 

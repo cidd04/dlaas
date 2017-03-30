@@ -1,11 +1,12 @@
 package com.equinix.dlaas.domain;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by ransay on 3/28/2017.
  */
-public class UpdateMessage {
+public class UpdateMessage implements Serializable {
 
     private String networkId;
     private List<String> payload;

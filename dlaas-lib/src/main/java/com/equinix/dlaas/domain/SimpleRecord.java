@@ -2,12 +2,13 @@ package com.equinix.dlaas.domain;
 
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by ransay on 3/23/2017.
  */
-public class SimpleRecord {
+public class SimpleRecord implements Serializable {
 
     public SimpleRecord() {}
 

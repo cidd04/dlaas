@@ -12,14 +12,14 @@ import java.nio.file.Paths;
  */
 public class FileUploadUtil {
 
-    public static void upload(MultipartFile file) {
+    public static void upload(MultipartFile file, String destination) {
         if (file.isEmpty()) {
             return;
         }
         try {
             // Get the file and save it somewhere
             byte[] bytes = file.getBytes();
-            Path path = Paths.get("" + file.getOriginalFilename());
+            Path path = Paths.get(destination + "/" + file.getOriginalFilename());
             Files.write(path, bytes);
             //log success
         } catch (IOException e) {
