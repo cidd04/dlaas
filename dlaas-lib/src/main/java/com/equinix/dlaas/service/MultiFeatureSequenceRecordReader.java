@@ -113,15 +113,18 @@ public class MultiFeatureSequenceRecordReader extends FileRecordReader implement
             ArrayList<Writable> list = new ArrayList<>();
 
             //Create feature
-            double[] feature = new double[split.length - 1];
+            double[] feature = new double[split.length / 2];
             for (int i = 0; i < feature.length; i++) {
                 feature[i] = Double.parseDouble(split[i]);
             }
             list.add(new NDArrayWritable(Nd4j.create(feature)));
 
             //Create label
-            double[] label = new double[1];
-            label[0] = Double.parseDouble(split[split.length - 1]);
+            double[] label = new double[split.length / 2];
+            int offset = split.length / 2;
+            for (int i = 0; i < label.length; i++) {
+                label[i] = Double.parseDouble(split[i + offset]);
+            }
             list.add(new NDArrayWritable(Nd4j.create(label)));
 
             //Add everything to list

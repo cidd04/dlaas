@@ -1,6 +1,7 @@
 package com.equinix.dlaas.domain;
 
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.nd4j.linalg.dataset.api.preprocessor.NormalizerMinMaxScaler;
 
 import java.io.Serializable;
 import java.util.List;
@@ -25,6 +26,8 @@ public class SimpleRecord implements Serializable {
     private String testFilePath;
     private MultiLayerNetwork net;
     private List<String> lastValue;
+    private NormalizerMinMaxScaler normalizer;
+    private int columnCount;
 
     public String getId() {
         return id;
@@ -80,6 +83,23 @@ public class SimpleRecord implements Serializable {
 
     public void setRawTestFilePath(String rawTestFilePath) {
         this.rawTestFilePath = rawTestFilePath;
+    }
+
+
+    public NormalizerMinMaxScaler getNormalizer() {
+        return normalizer;
+    }
+
+    public void setNormalizer(NormalizerMinMaxScaler normalizer) {
+        this.normalizer = normalizer;
+    }
+
+    public int getColumnCount() {
+        return columnCount;
+    }
+
+    public void setColumnCount(int columnCount) {
+        this.columnCount = columnCount;
     }
 
     public static class SimpleRecordBuilder {

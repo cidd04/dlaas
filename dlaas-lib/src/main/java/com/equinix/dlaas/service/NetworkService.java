@@ -40,9 +40,10 @@ public class NetworkService {
 
     private static final Logger logger = LoggerFactory.getLogger(NetworkService.class);
 
-    public List<String> predict(MultiLayerNetwork net, List<String> lastValue, int count) {
+    public List<String> predict(NormalizerMinMaxScaler normalizer, MultiLayerNetwork net,
+                                List<String> lastValue, int count) {
         DataSet dataSet = initializeDataSet(lastValue);
-        normalizeDataset(dataSet);
+        normalizeDataset(normalizer, false, dataSet);
         List<INDArray> predictedList = new ArrayList<>();
         INDArray input = dataSet.getFeatures();
         for (int i = 0; i < count; i++) {
@@ -51,7 +52,6 @@ public class NetworkService {
             input = predicted;
         }
         List<String> output = new ArrayList<>();
-        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
         for (INDArray predicted : predictedList) {
             normalizer.revertLabels(predicted);
             output.add(String.valueOf(predicted.getDouble(0)));
@@ -59,22 +59,27 @@ public class NetworkService {
         return output;
     }
 
-    public MultiLayerNetwork updateNetwork(MultiLayerNetwork net, List<String> payload) {
-        return null;
+    public MultiLayerNetwork updateNetwork(NormalizerMinMaxScaler normalizer, MultiLayerNetwork net,
+                                           List<String> payload) {
+        DataSet dataSet = initializeDataSet(payload);
+        normalizeDataset(normalizer, true, dataSet);
+        net.fit(dataSet);
+        return net;
     }
 
-    public MultiLayerNetwork createNetwork(String trainFilePath)
+    public MultiLayerNetwork createNetwork(NormalizerMinMaxScaler normalizer, String trainFilePath, int columnCount)
             throws IOException, InterruptedException {
-        return createNetwork(trainFilePath);
+        return createNetwork(normalizer, trainFilePath, null, columnCount);
     }
 
-    public MultiLayerNetwork createNetwork(String trainFilePath, String testFilePath)
+    public MultiLayerNetwork createNetwork(NormalizerMinMaxScaler normalizer, String trainFilePath, String testFilePath,
+                                           int columnCount)
             throws IOException, InterruptedException {
         DataSet trainData = initializeDataSet(trainFilePath);
         DataSet testData = null;
         if (testFilePath != null)
             testData = initializeDataSet(testFilePath);
-        normalizeDataset(trainData, testData);
+        normalizeDataset(normalizer, true, trainData, testData);
 
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
                 .seed(config.getSeed())
@@ -84,10 +89,10 @@ public class NetworkService {
                 .updater(Updater.NESTEROVS).momentum(0.9)
                 .learningRate(config.getLearningRate())
                 .list()
-                .layer(0, new GravesLSTM.Builder().activation(Activation.TANH).nIn(2).nOut(config.getHidden())
+                .layer(0, new GravesLSTM.Builder().activation(Activation.TANH).nIn(columnCount).nOut(config.getHidden())
                         .build())
                 .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MSE)
-                        .activation(Activation.IDENTITY).nIn(config.getHidden()).nOut(1).build())
+                        .activation(Activation.IDENTITY).nIn(config.getHidden()).nOut(columnCount).build())
                 .build();
 
         MultiLayerNetwork net = new MultiLayerNetwork(conf);
@@ -106,14 +111,18 @@ public class NetworkService {
         return net;
     }
 
-    private void normalizeDataset(DataSet trainData) {
-        normalizeDataset(trainData, null);
+    public NormalizerMinMaxScaler createNormalizer() {
+        return new NormalizerMinMaxScaler(0, 1);
     }
 
-    private void normalizeDataset(DataSet trainData, DataSet testData) {
-        NormalizerMinMaxScaler normalizer = new NormalizerMinMaxScaler(0, 1);
-        normalizer.fitLabel(true);
-        normalizer.fit(trainData);
+    private void normalizeDataset(NormalizerMinMaxScaler normalizer, boolean fitData, DataSet trainData) {
+        normalizeDataset(normalizer, fitData, trainData, null);
+    }
+
+    private void normalizeDataset(NormalizerMinMaxScaler normalizer, boolean fitData, DataSet trainData,
+                                  DataSet testData) {
+        if (fitData)
+            normalizer.fit(trainData);
         normalizer.transform(trainData);
         if (testData != null)
             normalizer.transform(testData);

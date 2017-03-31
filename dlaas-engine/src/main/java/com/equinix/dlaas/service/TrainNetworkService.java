@@ -3,6 +3,7 @@ package com.equinix.dlaas.service;
 import com.equinix.dlaas.domain.*;
 import com.equinix.dlaas.util.TrainNetworkUtil;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.nd4j.linalg.dataset.api.preprocessor.NormalizerMinMaxScaler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,27 +64,32 @@ public class TrainNetworkService implements MessageProcessor {
                 //1. Start Training
                 TrainTestMessage message = (TrainTestMessage) simpleMessage.getMessage();
                 SimpleRecord record = recordMap.get(message.getNetworkId());
-
                 record.setTrainFilePath(record.getId() + "_0_train.txt");
-                TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
+                int columnCount = TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
                         dataDirectory + "/" + record.getTrainFilePath());
+                record.setColumnCount(columnCount);
                 MultiLayerNetwork net;
+                NormalizerMinMaxScaler normalizer = networkService.createNormalizer();
+                normalizer.fitLabel(true);
                 if (record.getRawTestFilePath() != null) {
                     record.setTestFilePath(record.getId() + "_0_test.txt");
                     TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTestFilePath(),
                             dataDirectory + "/" + record.getTestFilePath());
-                    net = networkService.createNetwork(dataDirectory + "/" + record.getId() + "_%d_train.txt",
-                            dataDirectory + "/" + record.getId() + "_%d_test.txt");
+                    net = networkService.createNetwork(normalizer, dataDirectory + "/" + record.getId()
+                                    + "_%d_train.txt", dataDirectory + "/" + record.getId()
+                                    + "_%d_test.txt", columnCount);
                 } else {
-                    net = networkService.createNetwork(dataDirectory + "/" + record.getId() + "_%d_train.txt");
+                    net = networkService.createNetwork(normalizer, dataDirectory + "/" + record.getId()
+                                    + "_%d_train.txt", columnCount);
                 }
-                //2. Set last value from test data
+                //2. Set last value from train data
                 List<String> lastValue = TrainNetworkUtil.getLastValue(
-                        dataDirectory + "/" + record.getRawTrainFilePath());
+                        dataDirectory + "/" + record.getTrainFilePath());
                 record.setLastValue(lastValue);
-                //3. Send notification into queue
                 record.setNet(net);
+                record.setNormalizer(normalizer);
                 recordMap.put(record.getId(), record);
+                //3. Send notification into queue
                 SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
                 notifyQueue.add(notify);
             } else if (simpleMessage.getMessage() instanceof UpdateMessage) {
@@ -92,7 +98,7 @@ public class TrainNetworkService implements MessageProcessor {
                 if (record.getNet() == null)
                     throw new RuntimeException("No network configured on this id: " + record.getId());
                 List<String> payload = TrainNetworkUtil.formatRawData(message.getPayload());
-                MultiLayerNetwork net = networkService.updateNetwork(record.getNet(), payload);
+                MultiLayerNetwork net = networkService.updateNetwork(record.getNormalizer(), record.getNet(), payload);
                 //2. Set last value from payload
                 record.setLastValue(message.getPayload());
                 //3. Update record map

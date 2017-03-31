@@ -1,6 +1,6 @@
 package com.equinix.dlaas.controller;
 
-import com.equinix.dlaas.domain.EventResponse;
+import com.equinix.dlaas.domain.ApiResponse;
 import com.equinix.dlaas.domain.FileUploadType;
 import com.equinix.dlaas.service.ForecastService;
 import org.slf4j.Logger;
@@ -13,42 +13,42 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-public class EventController {
+public class ApiController {
 
-    private static final Logger log = LoggerFactory.getLogger(EventController.class);
+    private static final Logger log = LoggerFactory.getLogger(ApiController.class);
 
     @Autowired
     private ForecastService forecastService;
 
     @PostMapping("/upload/{id}")
-    public ResponseEntity<EventResponse> upload(@PathVariable String id, @RequestParam("file") MultipartFile file,
-                                                @RequestParam("type") FileUploadType type) {
+    public ResponseEntity<ApiResponse> upload(@PathVariable String id, @RequestParam("file") MultipartFile file,
+                                              @RequestParam("type") FileUploadType type) {
         forecastService.upload(id, file, type);
         return null;
     }
 
     @PostMapping("/train/{id}")
-    public ResponseEntity<EventResponse> train(@PathVariable String id) {
+    public ResponseEntity<ApiResponse> train(@PathVariable String id) {
         forecastService.train(id);
         return null;
     }
 
     @PostMapping("/create")
-    public ResponseEntity<EventResponse> create() {
+    public ResponseEntity<ApiResponse> create() {
         String id = forecastService.create();
         log.info("Network id: " + id);
         return null;
     }
 
     @GetMapping("/forecast/{id}")
-    public ResponseEntity<EventResponse> forecast(@PathVariable String id, @RequestParam("count") Integer count) {
+    public ResponseEntity<ApiResponse> forecast(@PathVariable String id, @RequestParam("count") Integer count) {
         forecastService.forecast(id, count);
         return null;
     }
 
     @PostMapping("/update/{id}")
-    public ResponseEntity<EventResponse> update(@PathVariable String id,
-                                                             @RequestBody List<String> payload) {
+    public ResponseEntity<ApiResponse> update(@PathVariable String id,
+                                              @RequestBody List<String> payload) {
         forecastService.update(id, payload);
         return null;
     }

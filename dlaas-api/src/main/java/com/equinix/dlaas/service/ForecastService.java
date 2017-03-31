@@ -38,7 +38,7 @@ public class ForecastService {
         SimpleRecord record = recordMap.get(id);
         if (record.getNet() == null)
             throw new RuntimeException("No network configured on this id: " + id);
-        return networkService.predict(record.getNet(), record.getLastValue(), count);
+        return networkService.predict(record.getNormalizer(), record.getNet(), record.getLastValue(), count);
     }
 
     public void update(String id, List<String> payload) {

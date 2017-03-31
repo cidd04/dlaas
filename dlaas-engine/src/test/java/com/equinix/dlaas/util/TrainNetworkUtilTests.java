@@ -25,5 +25,10 @@ public class TrainNetworkUtilTests {
         System.out.println(output);
     }
 
+    @Test
+    public void formatRawData() throws IOException {
+        TrainNetworkUtil.formatRawData(destination + "/" + "trainraw,txt.txt" , destination + "/" + "xx_train.txt");
+    }
+
 
 }

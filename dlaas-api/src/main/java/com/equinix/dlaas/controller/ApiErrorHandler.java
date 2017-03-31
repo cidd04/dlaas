@@ -17,7 +17,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @RestControllerAdvice
-public class EventErrorHandler {
+public class ApiErrorHandler {
 
     @ResponseStatus(BAD_REQUEST)
     @ExceptionHandler(Exception.class)

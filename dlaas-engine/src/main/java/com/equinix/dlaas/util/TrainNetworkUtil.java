@@ -1,5 +1,7 @@
 package com.equinix.dlaas.util;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +47,7 @@ public class TrainNetworkUtil {
         }
         zipIn.close();
     }
+
     /**
      * Extracts a zip entry (file entry)
      * @param zipIn
@@ -61,53 +64,87 @@ public class TrainNetworkUtil {
         bos.close();
     }
 
-    public static void formatRawData(String rawDataFilePath, String saveFilePath) throws IOException {
+    /**
+     * Completely shit code
+     * @param rawDataFilePath
+     * @param saveFilePath
+     * @return int
+     * @throws IOException
+     */
+    public static int formatRawData(String rawDataFilePath, String saveFilePath) throws IOException {
+        String line;
+        String[] s = null;
+        boolean first = true;
+        int output;
         try (BufferedReader br = new BufferedReader(new FileReader(rawDataFilePath));
              FileWriter fw = new FileWriter(saveFilePath)) {
-            String line;
-            String[] s = null;
-            boolean first = true;
             while ((line = br.readLine()) != null) {
                 s = line.split(";");
-                if (!first)
-                    fw.write(s[1] + "\n");
+                if (!first) {
+                    for (int i = 1; i < s.length; i++) {
+                        fw.write(s[i]);
+                        if (i != s.length - 1)
+                            fw.write(";");
+                    }
+                    fw.write("\n");
+                }
                 for (int i = 1; i < s.length; i++) {
-                    fw.write(s[i] + ";");
+                    fw.write(s[i]);
+                    fw.write(";");
                 }
                 first = false;
             }
-            fw.write(s[1] + "\n");
+            for (int i = 1; i < s.length; i++) {
+                fw.write(s[i]);
+                if (i != s.length - 1)
+                    fw.write(";");
+            }
+            fw.write("\n");
+            output = s.length / 2;
         }
+        return output;
     }
 
     public static List<String> formatRawData(List<String> source) {
         List<String> destination = new ArrayList<>();
-        String value = "";
+        StringBuilder sb = new StringBuilder();
         String[] s = null;
         boolean first = true;
         for (String line : source) {
             s = line.split(";");
             if (!first) {
-                value += s[1];
-                destination.add(value);
-                value = "";
+                for (int i = 1; i < s.length; i++) {
+                    sb.append(s[i]);
+                    if (i != s.length - 1)
+                        sb.append(";");
+                }
+                destination.add(sb.toString());
+                sb.setLength(0);
             }
             for (int i = 1; i < s.length; i++) {
-                value += s[i] + ";";
+                sb.append(s[i]);
+                sb.append(";");
             }
             first = false;
         }
-        value += s[1];
-        destination.add(value);
+        for (int i = 1; i < s.length; i++) {
+            sb.append(s[i]);
+            if (i != s.length - 1)
+                sb.append(";");
+        }
+        destination.add(sb.toString());
         return destination;
     }
 
     public static List<String> getLastValue(String filePath) throws IOException {
         List<String> lastValueList = new ArrayList<>();
         String line;
+        String output = null;
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            while ((line = br.readLine()) != null) {}
-            lastValueList.add(line);
+            while ((line = br.readLine()) != null) {
+                if (StringUtils.isNotEmpty(line.trim())) output = line;
+            }
+            lastValueList.add(output);
         }
         return lastValueList;
     }

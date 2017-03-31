@@ -24,7 +24,7 @@ public class TrainNetworkServiceTest {
     @Autowired
     private TrainNetworkService trainNetworkService;
 
-    private String networkId = "xq61mBXfvc";
+    private String networkId = "rpen84PrFu";
 
     @Test
     public void trainTestMessage() {
@@ -38,7 +38,7 @@ public class TrainNetworkServiceTest {
     }
 
     @Test
-    public void updateTestMessage() {
+    public void updateTrainTestMessage() {
         List<String> l = new ArrayList<>();
         l.add("123;456;222");
         l.add("222;333;444");

@@ -3,7 +3,7 @@ package com.equinix.dlaas.domain;
 /**
  * Created by ransay on 2/7/2017.
  */
-public class EventResponse {
+public class ApiResponse {
 
     private String message;
     //If any
