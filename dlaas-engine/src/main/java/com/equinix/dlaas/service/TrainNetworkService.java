@@ -65,8 +65,9 @@ public class TrainNetworkService implements MessageProcessor {
                 TrainTestMessage message = (TrainTestMessage) simpleMessage.getMessage();
                 SimpleRecord record = recordMap.get(message.getNetworkId());
                 record.setTrainFilePath(record.getId() + "_0_train.txt");
-                int columnCount = TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
+                TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
                         dataDirectory + "/" + record.getTrainFilePath());
+                int columnCount = TrainNetworkUtil.countColumn(dataDirectory + "/" + record.getTrainFilePath());
                 record.setColumnCount(columnCount);
                 MultiLayerNetwork net;
                 NormalizerMinMaxScaler normalizer = networkService.createNormalizer();
@@ -100,7 +101,7 @@ public class TrainNetworkService implements MessageProcessor {
                 List<String> payload = TrainNetworkUtil.formatRawData(message.getPayload());
                 MultiLayerNetwork net = networkService.updateNetwork(record.getNormalizer(), record.getNet(), payload);
                 //2. Set last value from payload
-                record.setLastValue(message.getPayload());
+                record.setLastValue(payload);
                 //3. Update record map
                 record.setNet(net);
                 recordMap.put(record.getId(), record);

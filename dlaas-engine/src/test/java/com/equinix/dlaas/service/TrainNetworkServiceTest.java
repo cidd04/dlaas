@@ -24,7 +24,7 @@ public class TrainNetworkServiceTest {
     @Autowired
     private TrainNetworkService trainNetworkService;
 
-    private String networkId = "rpen84PrFu";
+    private String networkId = "vxlVB0sUvw";
 
     @Test
     public void trainTestMessage() {
@@ -40,9 +40,9 @@ public class TrainNetworkServiceTest {
     @Test
     public void updateTrainTestMessage() {
         List<String> l = new ArrayList<>();
-        l.add("123;456;222");
-        l.add("222;333;444");
-        l.add("444;555;444");
+        l.add("timstamp1;123;456");
+        l.add("timstamp2;222;333");
+        l.add("timstamp3;444;555");
         UpdateMessage m = new UpdateMessage();
         m.setPayload(l);
         m.setNetworkId(networkId);

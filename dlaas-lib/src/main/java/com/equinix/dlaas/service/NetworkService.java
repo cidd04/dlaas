@@ -54,7 +54,8 @@ public class NetworkService {
         List<String> output = new ArrayList<>();
         for (INDArray predicted : predictedList) {
             normalizer.revertLabels(predicted);
-            output.add(String.valueOf(predicted.getDouble(0)));
+            //output.add(String.valueOf(predicted.getDouble(0)));
+            output.add(String.valueOf(predicted.getDouble(1)) + ";" + String.valueOf(predicted.getDouble(1)));
         }
         return output;
     }
@@ -102,7 +103,7 @@ public class NetworkService {
             net.fit(trainData);
             logger.info("Epoch " + i + " complete. Time series evaluation:");
             if (testFilePath != null) {
-                RegressionEvaluation evaluation = new RegressionEvaluation(1);
+                RegressionEvaluation evaluation = new RegressionEvaluation(2);
                 INDArray predicted = net.output(testData.getFeatureMatrix(), false);
                 evaluation.evalTimeSeries(testData.getLabels(), predicted);
                 System.out.println(evaluation.stats());

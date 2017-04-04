@@ -30,5 +30,11 @@ public class TrainNetworkUtilTests {
         TrainNetworkUtil.formatRawData(destination + "/" + "trainraw,txt.txt" , destination + "/" + "xx_train.txt");
     }
 
+    @Test
+    public void createIXPData() throws IOException {
+        TrainNetworkUtil.createIXPData("C:/Users/ransay/Desktop/rawixpstuff.txt", "C:/Users/ransay/Desktop/ixpstuff.txt");
+        TrainNetworkUtil.createIXPData("C:/Users/ransay/Desktop/rawixpstuff2.txt", "C:/Users/ransay/Desktop/ixpstuff2.txt");
+    }
+
 
 }

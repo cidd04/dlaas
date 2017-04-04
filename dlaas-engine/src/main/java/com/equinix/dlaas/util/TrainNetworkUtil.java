@@ -1,10 +1,13 @@
 package com.equinix.dlaas.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -71,7 +74,7 @@ public class TrainNetworkUtil {
      * @return int
      * @throws IOException
      */
-    public static int formatRawData(String rawDataFilePath, String saveFilePath) throws IOException {
+    public static void formatRawData(String rawDataFilePath, String saveFilePath) throws IOException {
         String line;
         String[] s = null;
         boolean first = true;
@@ -100,9 +103,7 @@ public class TrainNetworkUtil {
                     fw.write(";");
             }
             fw.write("\n");
-            output = s.length / 2;
         }
-        return output;
     }
 
     public static List<String> formatRawData(List<String> source) {
@@ -147,5 +148,30 @@ public class TrainNetworkUtil {
             lastValueList.add(output);
         }
         return lastValueList;
+    }
+
+    public static int countColumn(String filePath) throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line = br.readLine();
+            String[] columns = line.split(";");
+            return columns.length / 2;
+        }
+    }
+
+    public static void createIXPData(String dataFilePath, String saveFilePath) throws IOException {
+
+        byte[] b = Files.readAllBytes(Paths.get(dataFilePath));
+        ObjectMapper mapper = new ObjectMapper();
+        List<Map<String, String>> list = mapper.readValue(b,new TypeReference<List<TreeMap<String, String>>>(){});
+
+        Comparator<Map<String, String>> comparator = (m1, m2) -> m1.get("timestamp").compareTo(m2.get("timestamp"));
+        Collections.sort(list, comparator);
+
+        try (FileWriter fw = new FileWriter(saveFilePath)) {
+            for (Map<String, String> map : list) {
+                fw.write(map.get("timestamp") + ";" + map.get("inbound") + ";" + map.get("outbound") + "\n");
+            }
+        }
+
     }
 }

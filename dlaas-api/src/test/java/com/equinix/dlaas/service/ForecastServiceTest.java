@@ -25,7 +25,7 @@ public class ForecastServiceTest {
     @Autowired
     private ForecastService forecastService;
 
-    private String networkId = "rpen84PrFu";
+    private String networkId = "vxlVB0sUvw";
 
     @Test
     public void create() {
