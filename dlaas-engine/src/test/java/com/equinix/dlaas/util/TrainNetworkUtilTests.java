@@ -27,7 +27,7 @@ public class TrainNetworkUtilTests {
 
     @Test
     public void formatRawData() throws IOException {
-        TrainNetworkUtil.formatRawData(destination + "/" + "trainraw,txt.txt" , destination + "/" + "xx_train.txt");
+        TrainNetworkUtil.formatRawData("C:/Users/ransay/Desktop/ixpstuff3.txt" , "C:/Users/ransay/Desktop/ixpstuff_0_train.txt");
     }
 
     @Test

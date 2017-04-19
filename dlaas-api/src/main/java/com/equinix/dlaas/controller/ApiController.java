@@ -2,6 +2,7 @@ package com.equinix.dlaas.controller;
 
 import com.equinix.dlaas.domain.ApiResponse;
 import com.equinix.dlaas.domain.FileUploadType;
+import com.equinix.dlaas.domain.CaseType;
 import com.equinix.dlaas.service.ForecastService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class ApiController {
@@ -34,7 +36,7 @@ public class ApiController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ApiResponse> create() {
+    public ResponseEntity<ApiResponse> create(@RequestParam("type") CaseType type) {
         String id = forecastService.create();
         log.info("Network id: " + id);
         return null;
@@ -43,6 +45,13 @@ public class ApiController {
     @GetMapping("/forecast/{id}")
     public ResponseEntity<ApiResponse> forecast(@PathVariable String id, @RequestParam("count") Integer count) {
         forecastService.forecast(id, count);
+        return null;
+    }
+
+    @PostMapping("/output/{id}")
+    public ResponseEntity<ApiResponse> output(@PathVariable String id,
+                                                @RequestParam("payload") Map<String, String> payload) {
+        //forecastService.forecast(id, count);
         return null;
     }
 
