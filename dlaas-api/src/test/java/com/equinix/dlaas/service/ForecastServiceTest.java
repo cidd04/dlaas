@@ -1,5 +1,6 @@
 package com.equinix.dlaas.service;
 
+import com.equinix.dlaas.domain.CaseType;
 import com.equinix.dlaas.domain.FileUploadType;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
@@ -29,7 +30,7 @@ public class ForecastServiceTest {
 
     @Test
     public void create() {
-        networkId = forecastService.create();
+        networkId = forecastService.create(CaseType.REC_REGRESSION);
         System.out.println("id: " + networkId);
     }
 

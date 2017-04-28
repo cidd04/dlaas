@@ -12,7 +12,9 @@ import org.springframework.data.redis.support.collections.RedisList;
 import org.springframework.data.redis.support.collections.RedisMap;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -44,7 +46,7 @@ public class TrainNetworkService implements MessageProcessor {
     private int timeoutInSeconds;
 
     @Autowired
-    NetworkService networkService;
+    Map<String, NetworkService> networks;
 
     @Value("${dataDirectory}")
     private String dataDirectory;
@@ -53,61 +55,11 @@ public class TrainNetworkService implements MessageProcessor {
     public void processAsync(SimpleMessage simpleMessage) {
         try {
             if (simpleMessage.getMessage() instanceof FileUploadMessage) {
-                //1. Get file name
-                FileUploadMessage message = (FileUploadMessage) simpleMessage.getMessage();
-                //2. Unzip
-                TrainNetworkUtil.unzip(dataDirectory + "/" + message.getFileName(), dataDirectory);
-                //3. Send notification into queue
-                SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
-                notifyQueue.add(notify);
+                processFileUpload(simpleMessage);
             } else if (simpleMessage.getMessage() instanceof TrainTestMessage) {
-                //1. Start Training
-                TrainTestMessage message = (TrainTestMessage) simpleMessage.getMessage();
-                SimpleRecord record = recordMap.get(message.getNetworkId());
-                record.setTrainFilePath(record.getId() + "_0_train.txt");
-                TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
-                        dataDirectory + "/" + record.getTrainFilePath());
-                int columnCount = TrainNetworkUtil.countColumn(dataDirectory + "/" + record.getTrainFilePath());
-                record.setColumnCount(columnCount);
-                MultiLayerNetwork net;
-                NormalizerMinMaxScaler normalizer = networkService.createNormalizer();
-                normalizer.fitLabel(true);
-                if (record.getRawTestFilePath() != null) {
-                    record.setTestFilePath(record.getId() + "_0_test.txt");
-                    TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTestFilePath(),
-                            dataDirectory + "/" + record.getTestFilePath());
-                    net = networkService.createNetwork(normalizer, dataDirectory + "/" + record.getId()
-                                    + "_%d_train.txt", dataDirectory + "/" + record.getId()
-                                    + "_%d_test.txt", columnCount);
-                } else {
-                    net = networkService.createNetwork(normalizer, dataDirectory + "/" + record.getId()
-                                    + "_%d_train.txt", columnCount);
-                }
-                //2. Set last value from train data
-                List<String> lastValue = TrainNetworkUtil.getLastValue(
-                        dataDirectory + "/" + record.getTrainFilePath());
-                record.setLastValue(lastValue);
-                record.setNet(net);
-                record.setNormalizer(normalizer);
-                recordMap.put(record.getId(), record);
-                //3. Send notification into queue
-                SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
-                notifyQueue.add(notify);
+                processTrainTest(simpleMessage);
             } else if (simpleMessage.getMessage() instanceof UpdateMessage) {
-                UpdateMessage message = (UpdateMessage) simpleMessage.getMessage();
-                SimpleRecord record = recordMap.get(message.getNetworkId());
-                if (record.getNet() == null)
-                    throw new RuntimeException("No network configured on this id: " + record.getId());
-                List<String> payload = TrainNetworkUtil.formatRawData(message.getPayload());
-                MultiLayerNetwork net = networkService.updateNetwork(record.getNormalizer(), record.getNet(), payload);
-                //2. Set last value from payload
-                record.setLastValue(payload);
-                //3. Update record map
-                record.setNet(net);
-                recordMap.put(record.getId(), record);
-                //4. Send notification into queue
-                SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
-                notifyQueue.add(notify);
+                processUpdate(simpleMessage);
             }
             //throw new RuntimeException("ABCD");
         } catch (Exception e) {
@@ -136,6 +88,69 @@ public class TrainNetworkService implements MessageProcessor {
         }, timeoutInSeconds, TimeUnit.SECONDS);
     }
 
+    private void processFileUpload(SimpleMessage simpleMessage) throws IOException {
+        //1. Get file name
+        FileUploadMessage message = (FileUploadMessage) simpleMessage.getMessage();
+        //2. Unzip
+        TrainNetworkUtil.unzip(dataDirectory + "/" + message.getFileName(), dataDirectory);
+        //3. Send notification into queue
+        SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
+        notifyQueue.add(notify);
+    }
 
+    private void processTrainTest(SimpleMessage simpleMessage) throws IOException, InterruptedException {
+        //1. Start Training
+        TrainTestMessage message = (TrainTestMessage) simpleMessage.getMessage();
+        SimpleRecord record = recordMap.get(message.getNetworkId());
+        record.setTrainFilePath(record.getId() + "_0_train.txt");
+        TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTrainFilePath(),
+                dataDirectory + "/" + record.getTrainFilePath());
+        int columnCount = TrainNetworkUtil.countColumn(dataDirectory + "/" + record.getTrainFilePath());
+        record.getConfig().setColumnCount(columnCount);
+        MultiLayerNetwork net;
+        NormalizerMinMaxScaler normalizer;
+        NetworkService networkService = NetworkService.getInstance(record.getType(), networks);
+        normalizer = networkService.createNormalizer();
+        normalizer.fitLabel(true);
+        if (record.getRawTestFilePath() != null) {
+            record.setTestFilePath(record.getId() + "_0_test.txt");
+            TrainNetworkUtil.formatRawData(dataDirectory + "/" + record.getRawTestFilePath(),
+                    dataDirectory + "/" + record.getTestFilePath());
+            net = networkService.createNetwork(normalizer, dataDirectory + "/" + record.getId()
+                    + "_%d_train.txt", dataDirectory + "/" + record.getId()
+                    + "_%d_test.txt", record.getConfig());
+        } else {
+            net = networkService.createNetwork(normalizer, dataDirectory + "/" + record.getId()
+                    + "_%d_train.txt", record.getConfig());
+        }
+        //2. Set last value from train data
+        List<String> lastValue = TrainNetworkUtil.getLastValue(
+                dataDirectory + "/" + record.getTrainFilePath());
+        record.setLastValue(lastValue);
+        record.setNet(net);
+        record.setNormalizer(normalizer);
+        recordMap.put(record.getId(), record);
+        //3. Send notification into queue
+        SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
+        notifyQueue.add(notify);
+    }
 
+    private void processUpdate(SimpleMessage simpleMessage) {
+        UpdateMessage message = (UpdateMessage) simpleMessage.getMessage();
+        SimpleRecord record = recordMap.get(message.getNetworkId());
+        if (record.getNet() == null)
+            throw new RuntimeException("No network configured on this id: " + record.getId());
+        List<String> payload = TrainNetworkUtil.formatRawData(message.getPayload());
+        NetworkService networkService = NetworkService.getInstance(record.getType(), networks);
+        MultiLayerNetwork net = networkService.updateNetwork(record.getNormalizer(), record.getNet(), payload,
+                record.getConfig());
+        //2. Set last value from payload
+        record.setLastValue(payload);
+        //3. Update record map
+        record.setNet(net);
+        recordMap.put(record.getId(), record);
+        //4. Send notification into queue
+        SimpleMessage notify = new SimpleMessage.SimpleMessageBuilder().build();
+        notifyQueue.add(notify);
+    }
 }

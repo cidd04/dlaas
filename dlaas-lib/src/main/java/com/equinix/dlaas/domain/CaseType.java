@@ -5,6 +5,7 @@ package com.equinix.dlaas.domain;
  */
 public enum CaseType {
 
-    REGRESSION, CLASSIFICATION
+    REGRESSION, REC_REGRESSION, CLASSIFICATION, REC_CLASSIFICATION;
 
+    public String value;
 }

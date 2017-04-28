@@ -17,6 +17,7 @@ public class NetworkConfig {
     private double learningRate;
     private int nEpochs;
     private int hidden;
+    private int columnCount;
 
     public int getMiniBatchSize() {
         return miniBatchSize;
@@ -65,4 +66,13 @@ public class NetworkConfig {
     public void setHidden(int hidden) {
         this.hidden = hidden;
     }
+
+    public int getColumnCount() {
+        return columnCount;
+    }
+
+    public void setColumnCount(int columnCount) {
+        this.columnCount = columnCount;
+    }
+
 }

@@ -37,7 +37,7 @@ public class ApiController {
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse> create(@RequestParam("type") CaseType type) {
-        String id = forecastService.create();
+        String id = forecastService.create(type);
         log.info("Network id: " + id);
         return null;
     }

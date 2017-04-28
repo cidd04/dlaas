@@ -1,9 +1,7 @@
 package com.equinix.dlaas.service;
 
-import com.equinix.dlaas.domain.FileUploadType;
-import com.equinix.dlaas.domain.SimpleMessage;
-import com.equinix.dlaas.domain.SimpleRecord;
-import com.equinix.dlaas.domain.UpdateMessage;
+import com.equinix.dlaas.config.NetworkConfig;
+import com.equinix.dlaas.domain.*;
 import com.equinix.dlaas.util.FileUploadUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by ransay on 3/24/2017.
@@ -21,9 +20,6 @@ import java.util.List;
 
 @Service
 public class ForecastService {
-
-    @Autowired
-    private NetworkService networkService;
 
     @Autowired
     private RedisList<SimpleMessage> eventQueue;
@@ -34,11 +30,19 @@ public class ForecastService {
     @Value("${dataDirectory}")
     private String destination;
 
+    @Autowired
+    private NetworkConfig defaultConfig;
+
+    @Autowired
+    private Map<String, NetworkService> networks;
+
     public List<String> forecast(String id, Integer count) {
         SimpleRecord record = recordMap.get(id);
         if (record.getNet() == null)
             throw new RuntimeException("No network configured on this id: " + id);
-        return networkService.predict(record.getNormalizer(), record.getNet(), record.getLastValue(), count);
+        NetworkService networkService = NetworkService.getInstance(record.getType(), networks);
+        return networkService.predict(record.getNormalizer(), record.getNet(), record.getLastValue(), count,
+                record.getConfig());
     }
 
     public void update(String id, List<String> payload) {
@@ -52,10 +56,13 @@ public class ForecastService {
         eventQueue.add(message);
     }
 
-    public String create() {
+    public String create(CaseType type) {
         SimpleRecord record = new SimpleRecord.SimpleRecordBuilder()
                 .id(RandomStringUtils.randomAlphanumeric(10))
                 .build();
+        NetworkConfig config = new NetworkConfig();
+        record.setType(type);
+        record.setConfig(config);
         recordMap.put(record.getId(), record);
         return record.getId();
     }

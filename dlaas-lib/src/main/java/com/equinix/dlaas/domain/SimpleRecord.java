@@ -1,5 +1,6 @@
 package com.equinix.dlaas.domain;
 
+import com.equinix.dlaas.config.NetworkConfig;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerMinMaxScaler;
 
@@ -27,7 +28,8 @@ public class SimpleRecord implements Serializable {
     private MultiLayerNetwork net;
     private List<String> lastValue;
     private NormalizerMinMaxScaler normalizer;
-    private int columnCount;
+    private NetworkConfig config;
+    private CaseType type;
 
     public String getId() {
         return id;
@@ -94,12 +96,20 @@ public class SimpleRecord implements Serializable {
         this.normalizer = normalizer;
     }
 
-    public int getColumnCount() {
-        return columnCount;
+    public NetworkConfig getConfig() {
+        return config;
     }
 
-    public void setColumnCount(int columnCount) {
-        this.columnCount = columnCount;
+    public void setConfig(NetworkConfig config) {
+        this.config = config;
+    }
+
+    public CaseType getType() {
+        return type;
+    }
+
+    public void setType(CaseType type) {
+        this.type = type;
     }
 
     public static class SimpleRecordBuilder {
